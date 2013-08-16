@@ -1,59 +1,69 @@
-from bs4 import BeautifulSoup
 import re
 import urllib2
 import urllib
 
-
-vlinks = []
-files = []
+## Configurations
+# The starting point 
 baseURL = "http://69.65.39.194/MobAudioStories.php"
+maxLinks = 1000
+excludeList = ["None","/","./","#top"]
+fileType = ".mp3"
+outFile = "links.txt"
 
+#Gloab list of links already visited , don't want to get into loop
+vlinks = []
+#This is where output is stored the list of files 
+files = []
+
+
+# A recursive function which takes a url and adds the outpit links in the global 
+# output list.
                                            
 def findFiles( baseURL ):
-    #baseURL.replace(" ","%20")
+    #URL encoding
     baseURL = urllib.quote(baseURL, safe="/:=&?#+!$,;'@()*[]")
     print "Scanning URL "+baseURL
     
     #Check maximum number of links you want to store
     print "Number of link stored - " + str(len(files))
-    if(len(files) > 1000):
+    if(len(files) > maxLinks):
         return
 
-    #soup = BeautifulSoup(urllib2.urlopen(baseURL))
+    # the current page
     website = ""
     try:
         website = urllib2.urlopen(baseURL)
     except urllib2.HTTPError, e:
         print baseURL + " NOT FOUND"
         return
+    # HTML content of the current page
     html = website.read()
+    # fetch the anchor tags using regular expression from the html
+    # Beautifull Soup does it wonderfully in one go
     links = re.findall('(?<=href=["\']).*?(?=["\'])', html)
-    #tags = soup.find_all(href=re.compile(".\.php$"))
-    #for link in soup.find_all('a'):
-    #print html
+    # 
     for link in links:    
-        #print link
-        
+        #print link        
         url = str(link)
-        if(url=="None" or url=="/" or url=="./" or url=="#top"):
-            continue            
-            #ignore the external link
-        if(url.endswith(".mp3")):
+        # Found the file type, then store and move to the next link
+        if(url.endswith(fileType)):
             print "file link stored" + url                    
             files.append(url)
-            f = open('links.txt', 'a')
+            f = open(outFile, 'a')
             f.write(url+"\n")
             f.close
             continue
-        if not (url.startswith("http")):
-            #Build the absolute URL
-            print "abs url = " + baseURL.partition('?')[0].rpartition('/')[0]+"....."+"/"+ "........."+url
+        # Exlude external links and self links , else it will keep looping
+        if not (url.startswith("http") or ( url in excludeList ) ):
+            #Build the absolute URL and show it !
+            print "abs url = " + baseURL.partition('?')[0].rpartition('/')[0]+"/"+url
             absURL =  baseURL.partition('?')[0].rpartition('/')[0]+"/"+ url
-            #Only Keep the MP3 urls
+            #Do not revisit the URL 
             if not (absURL in vlinks):
                 vlinks.append(absURL)
                 findFiles(absURL)
     return 
 
+#Finally call the function
 findFiles(baseURL)
 print files
