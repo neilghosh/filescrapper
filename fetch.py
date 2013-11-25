@@ -1,7 +1,9 @@
+import sys
 import re
 import urllib2
 import urllib
 import getopt
+import httplib
 
 ## Configurations
 # The starting point 
@@ -10,31 +12,39 @@ maxLinks = 1000
 excludeList = ["None","/","./","#top"]
 fileType = ".mp3"
 outFile = "links.txt"
+overwrite='a'
 
-
-maxLinks = ''
-outFile = ''
-try:
-    opts, args = getopt.getopt(argv,"hn:o:",["ifile=","ofile="])
-except getopt.GetoptError:
-    print 'fetch.py -n <maxLinks> -o <outputfile>'
-    sys.exit(2)
-for opt, arg in opts:
-    if opt == '-h':
-        print 'fetch.py -n <maxLinks> -o <outputfile>'
-        sys.exit()
-    elif opt in ("-i", "--nfile"):
-        maxLinks = arg
-    elif opt in ("-o", "--ofile"):
-        outFile = arg
-    print 'maxLinks to be fetched is "', maxLinks
-    print 'Output file is "', outFile
 
 
 #Gloab list of links already visited , don't want to get into loop
 vlinks = []
 #This is where output is stored the list of files 
 files = []
+
+def main(argv):
+    global maxLinks
+    global outFile
+    global overwrite
+    try:
+        opts, args = getopt.getopt(argv,"hn:o:w:")
+    except getopt.GetoptError:
+        print 'fetch.py -n <maxLinks> -o <outputfile>'
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print 'fetch.py -n <maxLinks> -o <outputfile>'
+            sys.exit()
+        elif opt in ("-n", "--nfile"):
+            maxLinks = int(arg)
+        elif opt in ("-o", "--ofile"):
+            outFile = arg
+        elif opt in ("-w"):
+            overwrite = 'w' if arg == 'True' else 'a'
+        print 'maxLinks to be fetched is ', maxLinks
+        print 'Output file is ', outFile
+        print 'Overwrite exiting links ' , overwrite
+
+
 
 
 # A recursive function which takes a url and adds the outpit links in the global 
@@ -46,7 +56,7 @@ def findFiles( baseURL ):
     print "Scanning URL "+baseURL
     
     #Check maximum number of links you want to store
-    print "Number of link stored - " + str(len(files))
+    print "Number of link stored - " + str(len(files)) + " of "+ str(maxLinks)
     if(len(files) > maxLinks):
         return
 
@@ -70,9 +80,17 @@ def findFiles( baseURL ):
         if(url.endswith(fileType)):
             print "file link stored" + url                    
             files.append(url)
-            f = open(outFile, 'a')
+            f = open(outFile, overwrite)
             f.write(url+"\n")
             f.close
+            
+            
+            request = urllib2.Request(url)
+            request.get_method = lambda : 'HEAD'
+
+            response = urllib2.urlopen(request)
+            print response.info().getheader('Last-Modified').strip()
+            
             continue
         # Exlude external links and self links , else it will keep looping
         if not (url.startswith("http") or ( url in excludeList ) ):
@@ -86,8 +104,9 @@ def findFiles( baseURL ):
     return 
 
 
+if __name__ == "__main__":
+    main(sys.argv[1:])
+    #Finally call the function
+    findFiles(baseURL)
+    print files
 
-
-#Finally call the function
-findFiles(baseURL)
-print files
