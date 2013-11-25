@@ -1,6 +1,7 @@
 import re
 import urllib2
 import urllib
+import getopt
 
 ## Configurations
 # The starting point 
@@ -9,6 +10,26 @@ maxLinks = 1000
 excludeList = ["None","/","./","#top"]
 fileType = ".mp3"
 outFile = "links.txt"
+
+
+maxLinks = ''
+outFile = ''
+try:
+    opts, args = getopt.getopt(argv,"hn:o:",["ifile=","ofile="])
+except getopt.GetoptError:
+    print 'fetch.py -n <maxLinks> -o <outputfile>'
+    sys.exit(2)
+for opt, arg in opts:
+    if opt == '-h':
+        print 'fetch.py -n <maxLinks> -o <outputfile>'
+        sys.exit()
+    elif opt in ("-i", "--nfile"):
+        maxLinks = arg
+    elif opt in ("-o", "--ofile"):
+        outFile = arg
+    print 'maxLinks to be fetched is "', maxLinks
+    print 'Output file is "', outFile
+
 
 #Gloab list of links already visited , don't want to get into loop
 vlinks = []
@@ -63,6 +84,9 @@ def findFiles( baseURL ):
                 vlinks.append(absURL)
                 findFiles(absURL)
     return 
+
+
+
 
 #Finally call the function
 findFiles(baseURL)
