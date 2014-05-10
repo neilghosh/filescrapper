@@ -87,8 +87,11 @@ def findFiles( baseURL ):
             
             request = urllib2.Request(url)
             request.get_method = lambda : 'HEAD'
-
-            response = urllib2.urlopen(request)
+            try:
+                response = urllib2.urlopen(request)
+            except urllib2.HTTPError, err:
+                print "Unable to fetch "+url
+                continue
             print response.info().getheader('Last-Modified').strip()
             
             continue
